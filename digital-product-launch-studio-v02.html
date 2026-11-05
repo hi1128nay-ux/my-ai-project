@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Digital Product Launch Studio v0.2</title>
+<style>
+:root{
+  --bg:#f5f6fb;--surface:#fff;--surface-2:#f3f1fb;--text:#2c3044;--muted:#636a80;--line:#e1e3ee;
+  --accent:#5d559c;--accent-hover:#48417f;--accent-soft:#ecebf8;--accent-text:#fff;
+  --good:#1f7a4d;--good-soft:#e5f5ec;--bad:#b3364b;--bad-soft:#fdecef;--warn:#8a5a00;--warn-soft:#fff4dc;
+  --focus:#2f6fd6;--radius:14px;
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Segoe UI",system-ui,sans-serif;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#15161d;--surface:#1f2029;--surface-2:#272836;--text:#e8e9f1;--muted:#a3a8bb;--line:#343647;
+  --accent:#8f87d6;--accent-hover:#a59ee2;--accent-soft:#2d2b45;--accent-text:#15161d;
+  --good:#6fd3a0;--good-soft:#1d3329;--bad:#f08a9b;--bad-soft:#3a1f26;--warn:#f0c46a;--warn-soft:#3a3020;--focus:#7fb0ff;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{line-height:1.5;padding-bottom:env(safe-area-inset-bottom)}
+header{background:linear-gradient(110deg,#5d559c,#7fb2d1);color:#fff;
+  padding:calc(22px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 24px max(16px,env(safe-area-inset-left))}
+.head-inner{max-width:1120px;margin:0 auto;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;justify-content:space-between}
+.badge{display:inline-block;font-size:12px;letter-spacing:.06em;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:99px}
+h1{margin:8px 0 4px;font-size:clamp(24px,4.5vw,36px);line-height:1.2}
+header p{margin:0;opacity:.95}
+.lang{display:inline-flex;background:rgba(255,255,255,.18);border-radius:10px;padding:3px}
+.lang button{background:transparent;color:#fff;border:0;min-height:40px;min-width:56px;border-radius:8px;font-weight:600}
+.lang button[aria-pressed="true"]{background:#fff;color:#4a437f}
+main{max-width:1120px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px;min-width:0}
+h2{margin:0 0 12px;font-size:19px}
+h3{margin:18px 0 10px;font-size:16px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;text-align:center}
+.stat b{display:block;font-size:26px;color:var(--accent);font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+label{display:block;font-size:14px;font-weight:600;margin-bottom:5px}
+input,select,textarea,button{font:inherit;font-size:16px;color:inherit}
+input,select,textarea{width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+textarea{min-height:90px;resize:vertical}
+input[aria-invalid="true"]{border-color:var(--bad);background:var(--bad-soft)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+button{min-height:44px;padding:10px 16px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-text);font-weight:600;cursor:pointer;touch-action:manipulation}
+button:hover{background:var(--accent-hover)}
+button.alt{background:var(--accent-soft);color:var(--accent)}
+button.alt:hover{background:var(--surface-2)}
+button.danger{background:var(--bad-soft);color:var(--bad)}
+.add-form{display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:end}
+.workspace{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);gap:16px;align-items:start}
+.list{display:grid;gap:8px}
+.list-item{display:block;width:100%;text-align:left;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px;font-weight:400}
+.list-item:hover{background:var(--surface-2)}
+.list-item[aria-current="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;background:var(--accent-soft)}
+.list-item strong{display:block;overflow-wrap:anywhere}
+.list-item small{display:block;color:var(--muted);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--surface-2);color:var(--muted);font-variant-numeric:tabular-nums}
+.chip.good{background:var(--good-soft);color:var(--good)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.field-error{color:var(--bad);font-size:13px;margin-top:4px;min-height:0}
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.result{background:var(--surface-2);border-radius:12px;padding:14px;min-width:0}
+.result span{font-size:13px;color:var(--muted)}
+.result b{display:block;font-size:22px;margin-top:4px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.result b.good{color:var(--good)}.result b.bad{color:var(--bad)}
+.note{font-size:13px;color:var(--muted);line-height:1.65;margin:8px 0 0}
+.alert{font-size:14px;padding:10px 12px;border-radius:10px;margin:10px 0 0}
+.alert.warn{background:var(--warn-soft);color:var(--warn)}
+.alert.bad{background:var(--bad-soft);color:var(--bad)}
+.alert:empty{display:none}
+.checklist{display:grid;gap:2px}
+.check{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);font-weight:400;margin:0;cursor:pointer;min-height:44px}
+.check input{width:22px;height:22px;min-height:0;flex:none;accent-color:var(--accent)}
+.check.done span{color:var(--muted);text-decoration:line-through}
+.progress{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:6px 0 10px}
+.progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+.buttons{display:flex;flex-wrap:wrap;gap:10px}
+.editor-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.empty{color:var(--muted);padding:12px 0}
+.banner{background:var(--bad-soft);color:var(--bad);padding:10px 14px;border-radius:10px;margin-bottom:14px}
+.banner[hidden]{display:none}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2c3044;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:calc(100% - 32px);z-index:10;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.toast[hidden]{display:none}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:820px){.workspace{grid-template-columns:1fr}.list{max-height:none}}
+@media (max-width:600px){
+  .add-form{grid-template-columns:1fr}
+  .stats{gap:6px}.stat{padding:10px 4px}.stat b{font-size:22px}
+  .panel{padding:14px}
+  .buttons button{flex:1 1 100%}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-inner">
+    <div>
+      <span class="badge" data-i18n="badge"></span>
+      <h1>Digital Product Launch Studio</h1>
+      <p data-i18n="tagline"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language / 言語">
+      <button type="button" data-lang="ja" aria-pressed="false" lang="ja">日本語</button>
+      <button type="button" data-lang="en" aria-pressed="false" lang="en">English</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="storageBanner" class="banner" role="alert" hidden data-i18n="storageFail"></div>
+
+  <section class="stats" aria-live="polite">
+    <div class="stat"><b id="statTotal">0</b><span data-i18n="statTotal"></span></div>
+    <div class="stat"><b id="statPreparing">0</b><span data-i18n="statPreparing"></span></div>
+    <div class="stat"><b id="statReady">0</b><span data-i18n="statReady"></span></div>
+  </section>
+
+  <section class="panel">
+    <h2 data-i18n="addTitle"></h2>
+    <form id="addForm" class="add-form" novalidate>
+      <div>
+        <label for="newName" data-i18n="nameLabel"></label>
+        <input id="newName" maxlength="100" autocomplete="off" data-i18n-ph="namePh">
+      </div>
+      <div>
+        <label for="newCategory" data-i18n="categoryLabel"></label>
+        <select id="newCategory"></select>
+      </div>
+      <button type="submit" data-i18n="addBtn"></button>
+    </form>
+    <p id="addError" class="field-error" role="alert"></p>
+  </section>
+
+  <div class="workspace">
+    <section class="panel" aria-labelledby="listTitle">
+      <h2 id="listTitle" data-i18n="listTitle"></h2>
+      <div id="list" class="list"></div>
+    </section>
+
+    <section class="panel" id="editorPanel" aria-labelledby="editorTitle" tabindex="-1">
+      <h2 id="editorTitle" class="sr-only" data-i18n="editorTitle"></h2>
+      <p id="editorEmpty" class="empty" data-i18n="editorEmpty"></p>
+      <div id="editor" hidden>
+        <div class="editor-head">
+          <h2 id="editorName" style="margin:0;overflow-wrap:anywhere"></h2>
+        </div>
+
+        <h3 data-i18n="basicsTitle"></h3>
+        <div class="fields">
+          <div style="grid-column:1/-1">
+            <label for="fName" data-i18n="nameLabel"></label>
+            <input id="fName" maxlength="100" autocomplete="off">
+            <p class="field-error" id="err-name"></p>
+          </div>
+          <div><label for="fCategory" data-i18n="categoryLabel"></label><select id="fCategory"></select></div>
+          <div><label for="fStatus" data-i18n="statusLabel"></label><select id="fStatus"></select></div>
+          <div><label for="fCurrency" data-i18n="currencyLabel"></label><select id="fCurrency"></select></div>
+        </div>
+
+        <h3 data-i18n="pricingTitle"></h3>
+        <div class="fields">
+          <div><label for="f-price" data-i18n="price"></label><input id="f-price" data-num="price" type="number" inputmode="decimal" min="0" step="any"><p class="field-error" id="err-price"></p></div>
+          <div><label for="f-cost" data-i18n="cost"></label><input id="f-cost" data-num="cost" type="number" inputmode="decimal" min="0" step="any"><p class="field-error" id="err-cost"></p></div>
+          <div><label for="f-feePct" data-i18n="feePct"></label><input id="f-feePct" data-num="feePct" type="number" inputmode="decimal" min="0" max="100" step="any"><p class="field-error" id="err-feePct"></p></div>
+          <div><label for="f-fixedFee" data-i18n="fixedFee"></label><input id="f-fixedFee" data-num="fixedFee" type="number" inputmode="decimal" min="0" step="any"><p class="field-error" id="err-fixedFee"></p></div>
+          <div><label for="f-adCost" data-i18n="adCost"></label><input id="f-adCost" data-num="adCost" type="number" inputmode="decimal" min="0" step="any"><p class="field-error" id="err-adCost"></p></div>
+        </div>
+        <p class="note" data-i18n="feeHint"></p>
+
+        <h3 data-i18n="resultsTitle"></h3>
+        <div class="results" aria-live="polite">
+          <div class="result"><span data-i18n="profit"></span><b id="rProfit">—</b></div>
+          <div class="result"><span data-i18n="margin"></span><b id="rMargin">—</b></div>
+          <div class="result"><span data-i18n="breakeven"></span><b id="rBreakeven">—</b></div>
+        </div>
+        <p id="calcAlert" class="alert warn" role="status"></p>
+
+        <h3 data-i18n="targetTitle"></h3>
+        <div class="fields">
+          <div><label for="f-targetProfit" data-i18n="targetLabel"></label><input id="f-targetProfit" data-num="targetProfit" type="number" inputmode="decimal" min="0" step="any"><p class="field-error" id="err-targetProfit"></p></div>
+        </div>
+        <div class="results" style="margin-top:10px" aria-live="polite">
+          <div class="result"><span data-i18n="unitsLabel"></span><b id="rUnits">—</b></div>
+          <div class="result"><span data-i18n="revenueLabel"></span><b id="rRevenue">—</b></div>
+        </div>
+        <p id="targetAlert" class="alert warn" role="status"></p>
+
+        <h3 data-i18n="checklistTitle"></h3>
+        <div class="progress" aria-hidden="true"><i id="checkBar"></i></div>
+        <p id="checkProgress" class="note" style="margin:0 0 6px"></p>
+        <div id="checklist" class="checklist"></div>
+
+        <h3><label for="fNotes" style="font-size:16px;margin:0" data-i18n="notesLabel"></label></h3>
+        <textarea id="fNotes" maxlength="2000"></textarea>
+
+        <div class="buttons" style="margin-top:16px">
+          <button type="button" class="danger" id="deleteBtn" data-i18n="deleteBtn"></button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2 data-i18n="backupTitle"></h2>
+    <div class="buttons">
+      <button type="button" id="exportBtn" data-i18n="exportBtn"></button>
+      <button type="button" class="alt" id="restoreBtn" data-i18n="restoreBtn"></button>
+      <input id="restoreFile" type="file" accept=".json,application/json" hidden>
+    </div>
+    <p class="note" data-i18n="backupHint"></p>
+    <div id="v01Box" hidden>
+      <p class="note" id="v01Hint"></p>
+      <div class="buttons" style="margin-top:8px"><button type="button" class="alt" id="importV01Btn" data-i18n="importV01Btn"></button></div>
+    </div>
+  </section>
+
+  <p class="note" data-i18n="disclaimer"></p>
+</main>
+<footer data-i18n="footer"></footer>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- constants ----------
+  const STORAGE_KEY = 'dpls-v02';          // v0.2 only; v0.1 keys (V01_KEYS) are read, never written
+  // v0.1 storage keys (read-only). 'dpls-v01' is the reported v0.1 key; 'dpls-proto-v01'
+  // is the key used by the v0.1 prototype committed in this repository. Both are only read.
+  const V01_KEYS = ['dpls-v01', 'dpls-proto-v01'];
+  const LANGS = ['ja', 'en'];
+  const APP_ID = 'digital-product-launch-studio';
+  const SCHEMA_VERSION = 2;
+  const MAX_PRODUCTS = 500;
+  const MAX_AMOUNT = 1e9;
+  const MAX_UNITS = 1e7;   // above this the monthly goal is treated as unrealistic
+  const MAX_FILE_BYTES = 2 * 1024 * 1024;
+  const CURRENCIES = ['USD', 'JPY', 'EUR', 'GBP', 'CAD', 'AUD'];
+  const CATEGORIES = ['planner', 'template', 'sticker', 'printable', 'other'];
+  const STATUSES = ['idea', 'preparing', 'ready', 'launched', 'paused'];
+  const TASKS = ['research', 'design', 'files', 'images', 'price', 'description', 'tags', 'policy', 'license', 'buyerTest'];
+  const NUM_FIELDS = ['price', 'cost', 'feePct', 'fixedFee', 'adCost', 'targetProfit'];
+
+  // ---------- i18n ----------
+  const I18N = {
+    ja: {
+      badge: 'v0.2 · オフライン',
+      tagline: '商品企画・価格設定・販売準備を商品ごとに管理',
+      storageFail: 'このブラウザではデータを保存できません（プライベートブラウズ等）。JSONでこまめにバックアップしてください。',
+      statTotal: '登録商品', statPreparing: '準備中', statReady: '準備完了・販売中',
+      addTitle: '新しい商品を追加', nameLabel: '商品名', namePh: '例：海外向けデジタルプランナー',
+      categoryLabel: 'カテゴリー', addBtn: '追加する', nameRequired: '商品名を入力してください。',
+      limitReached: '商品は最大{max}件まで登録できます。',
+      listTitle: '商品一覧', listEmpty: 'まだ商品がありません。上のフォームから追加してください。',
+      editorTitle: '商品の編集', editorEmpty: '一覧から商品を選ぶか、新しい商品を追加してください。',
+      basicsTitle: '基本情報', statusLabel: '進捗', currencyLabel: '通貨',
+      pricingTitle: '価格と費用（1件あたり）',
+      price: '販売価格', cost: '原価', feePct: '変動手数料（%）', fixedFee: '固定手数料', adCost: '広告費',
+      feeHint: '手数料・費用は、販売先（マーケットプレイスや決済サービス）の最新の条件をご自身で確認して入力してください。本ツールは特定サービスの実際の手数料を示すものではありません。',
+      resultsTitle: '利益の概算', profit: '利益額 / 1件', margin: '利益率', breakeven: '損益分岐価格',
+      targetTitle: '月間目標', targetLabel: '月間の目標利益', unitsLabel: '必要な販売件数 / 月', revenueLabel: '必要な売上 / 月',
+      checklistTitle: '販売準備チェックリスト', progressText: '{done} / {total} 完了',
+      notesLabel: 'メモ', deleteBtn: 'この商品を削除',
+      confirmDelete: '「{name}」を削除しますか？この操作は元に戻せません。',
+      backupTitle: 'バックアップと復元', exportBtn: 'JSONをダウンロード', restoreBtn: 'JSONから復元', importV01Btn: 'v0.1のデータを取り込む',
+      backupHint: 'データはこのブラウザ内（localStorage）にのみ保存され、端末間では同期されません。定期的にJSONでバックアップしてください。',
+      v01Hint: 'このブラウザにv0.1のデータ（{n}件）が見つかりました。取り込んでもv0.1のデータは削除・変更されません。v0.1のチェックリストは全商品共通だったため、引き継がれません。',
+      confirmImportV01: 'v0.1の商品{n}件を追加します（取り込み済みのものは除きます）。よろしいですか？',
+      importedV01: 'v0.1から{n}件を取り込みました。', nothingToImport: '新しく取り込める商品はありません。',
+      confirmRestore: 'バックアップ（{n}件・作成日時 {date}）を取り込みます。\n現在のデータ（{m}件）はすべて置き換えられます。続行しますか？\n\n必要な場合は、先に「JSONをダウンロード」で現在のデータを保存してください。',
+      restoreDone: '{n}件を復元しました。', restoreCancelled: '復元を中止しました。現在のデータは変更されていません。',
+      restoreInvalid: '復元できません：{reason}', exportDone: 'バックアップをダウンロードしました。',
+      rTooLarge: 'ファイルが大きすぎます（2MBまで）。', rParse: 'JSONとして読み込めません。', rFormat: 'このアプリのバックアップ形式ではありません。',
+      rTooMany: '商品数が上限（{max}件）を超えています。', rProduct: '{i}番目の商品データが正しくありません。', rRead: 'ファイルを読み込めませんでした。',
+      unknownDate: '不明',
+      errNumber: '0以上の数値を入力してください。', errMax: '{max}以下の数値を入力してください。', errFee: '0〜100の範囲で入力してください。',
+      needPrice: '販売価格を入力すると利益を計算できます。', invalidInput: '赤枠の入力内容を確認してください。',
+      feeFull: '変動手数料が100%のため、損益分岐価格は計算できません。', lossWarn: '現在の価格では、1件売るごとに赤字になります。', zeroProfit: '1件あたりの利益が0です（損益分岐点ちょうど）。',
+      tooManyUnits: '必要な販売件数が1,000万件を超えるため、現実的な目標ではありません。価格・費用・目標を見直してください。',
+      notReachable: '1件あたりの利益が0以下のため、目標を達成できる販売件数はありません。', targetZero: '目標利益を入力すると、必要な販売件数を計算します。',
+      untitled: '（無題）', chipLoss: '赤字', chipNoPrice: '価格未入力',
+      cat_planner: 'プランナー', cat_template: 'テンプレート', cat_sticker: 'ステッカー', cat_printable: 'プリンタブル', cat_other: 'その他',
+      st_idea: 'アイデア', st_preparing: '準備中', st_ready: '販売準備完了', st_launched: '販売中', st_paused: '保留',
+      t_research: '市場・競合を調べる', t_design: 'オリジナルデザインを作る', t_files: '商品ファイルを検品する', t_images: '商品画像を用意する',
+      t_price: '販売価格を決める', t_description: '商品説明文を作る', t_tags: 'タイトル・タグを決める', t_policy: '販売規約・AI利用の開示を確認する',
+      t_license: '利用ライセンスを明記する', t_buyerTest: '購入者として動作確認する',
+      units: '{n}件',
+      disclaimer: '金額はすべて概算です。税金、為替差、返金、月額費用、出品料などは含まれません。販売前に販売先の規約と最新の手数料を必ず確認してください。',
+      footer: 'Digital Product Launch Studio · v0.2 · 外部AI APIなし・オフラインで動作'
+    },
+    en: {
+      badge: 'v0.2 · OFFLINE',
+      tagline: 'Plan, price and prepare each digital product for launch',
+      storageFail: 'This browser cannot save data (for example, private browsing). Export a JSON backup often.',
+      statTotal: 'Products', statPreparing: 'In progress', statReady: 'Ready or live',
+      addTitle: 'Add a product', nameLabel: 'Product name', namePh: 'e.g. Digital planner for global buyers',
+      categoryLabel: 'Category', addBtn: 'Add', nameRequired: 'Enter a product name.',
+      limitReached: 'You can register up to {max} products.',
+      listTitle: 'Products', listEmpty: 'No products yet. Add one using the form above.',
+      editorTitle: 'Edit product', editorEmpty: 'Select a product from the list, or add a new one.',
+      basicsTitle: 'Basics', statusLabel: 'Status', currencyLabel: 'Currency',
+      pricingTitle: 'Price and costs (per sale)',
+      price: 'Sale price', cost: 'Cost', feePct: 'Variable fee (%)', fixedFee: 'Fixed fee', adCost: 'Ad spend',
+      feeHint: 'Check the current terms of your marketplace or payment provider and enter the fees yourself. This tool does not represent the actual fees of any specific service.',
+      resultsTitle: 'Estimated profit', profit: 'Profit per sale', margin: 'Profit margin', breakeven: 'Break-even price',
+      targetTitle: 'Monthly goal', targetLabel: 'Monthly profit goal', unitsLabel: 'Sales needed / month', revenueLabel: 'Revenue needed / month',
+      checklistTitle: 'Launch checklist', progressText: '{done} / {total} done',
+      notesLabel: 'Notes', deleteBtn: 'Delete this product',
+      confirmDelete: 'Delete "{name}"? This cannot be undone.',
+      backupTitle: 'Backup and restore', exportBtn: 'Download JSON', restoreBtn: 'Restore from JSON', importV01Btn: 'Import v0.1 data',
+      backupHint: 'Data is stored only in this browser (localStorage) and does not sync between devices. Export a JSON backup regularly.',
+      v01Hint: 'Found v0.1 data in this browser ({n} products). Importing does not delete or change the v0.1 data. The v0.1 checklist was shared by all products, so it is not carried over.',
+      confirmImportV01: 'Add {n} products from v0.1 (already imported ones are skipped)?',
+      importedV01: 'Imported {n} products from v0.1.', nothingToImport: 'There are no new products to import.',
+      confirmRestore: 'Import the backup ({n} products, created {date})?\nAll current data ({m} products) will be replaced.\n\nIf needed, download your current data first with "Download JSON".',
+      restoreDone: 'Restored {n} products.', restoreCancelled: 'Restore cancelled. Your current data was not changed.',
+      restoreInvalid: 'Cannot restore: {reason}', exportDone: 'Backup downloaded.',
+      rTooLarge: 'The file is too large (2 MB max).', rParse: 'The file is not valid JSON.', rFormat: 'This is not a backup from this app.',
+      rTooMany: 'The number of products exceeds the limit ({max}).', rProduct: 'Product #{i} contains invalid data.', rRead: 'The file could not be read.',
+      unknownDate: 'unknown',
+      errNumber: 'Enter a number of 0 or more.', errMax: 'Enter a number up to {max}.', errFee: 'Enter a value from 0 to 100.',
+      needPrice: 'Enter a sale price to calculate profit.', invalidInput: 'Check the fields outlined in red.',
+      feeFull: 'The variable fee is 100%, so no break-even price exists.', lossWarn: 'At this price, you lose money on every sale.', zeroProfit: 'Profit per sale is exactly 0 (break-even).',
+      tooManyUnits: 'More than 10 million sales would be needed, which is not a realistic goal. Review the price, costs or goal.',
+      notReachable: 'Profit per sale is 0 or less, so the goal cannot be reached by selling more.', targetZero: 'Enter a profit goal to calculate the sales needed.',
+      untitled: '(untitled)', chipLoss: 'Loss', chipNoPrice: 'No price',
+      cat_planner: 'Planner', cat_template: 'Template', cat_sticker: 'Sticker', cat_printable: 'Printable', cat_other: 'Other',
+      st_idea: 'Idea', st_preparing: 'In progress', st_ready: 'Ready to launch', st_launched: 'Live', st_paused: 'On hold',
+      t_research: 'Research the market and competitors', t_design: 'Create an original design', t_files: 'Inspect the product files', t_images: 'Prepare product images',
+      t_price: 'Set the sale price', t_description: 'Write the product description', t_tags: 'Choose the title and tags', t_policy: 'Review seller policies and AI-use disclosure',
+      t_license: 'State the usage license', t_buyerTest: 'Test the purchase as a buyer',
+      units: '{n}',
+      disclaimer: 'All amounts are estimates. Taxes, currency conversion, refunds, subscriptions and listing fees are not included. Always check your marketplace\'s terms and current fees before selling.',
+      footer: 'Digital Product Launch Studio · v0.2 · No external AI API · Works offline'
+    }
+  };
+
+  // ---------- helpers ----------
+  const $ = id => document.getElementById(id);
+  let lang = 'ja';
+  const t = (key, vars) => {
+    let s = (I18N[lang] && I18N[lang][key]) ?? I18N.ja[key] ?? key;
+    if (vars) for (const k of Object.keys(vars)) s = s.split('{' + k + '}').join(String(vars[k]));
+    return s;
+  };
+  const locale = () => (lang === 'ja' ? 'ja-JP' : 'en-US');
+  const isPlainObject = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+  const newId = () => 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+  const cleanText = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').slice(0, max) : '');
+
+  // Validate a number: returns null for invalid. `field` decides range.
+  function validNumber(v, field) {
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) return null;
+    if (field === 'feePct' && v > 100) return null;
+    if (v > MAX_AMOUNT) return null;
+    return v === 0 ? 0 : v;   // normalise -0
+  }
+
+  function fmtMoney(value, currency) {
+    if (!Number.isFinite(value)) return '—';
+    try {
+      return new Intl.NumberFormat(locale(), { style: 'currency', currency }).format(value);
+    } catch { return value.toFixed(2) + ' ' + currency; }
+  }
+  const fmtNum = (v, digits = 1) => new Intl.NumberFormat(locale(), { maximumFractionDigits: digits }).format(v);
+
+  // ---------- calculation (pure) ----------
+  // Returns per-sale profit, margin, break-even price and units required for the monthly goal.
+  function calculate(p) {
+    const r = { profit: NaN, margin: NaN, breakeven: NaN, units: NaN, revenue: NaN, issue: null, targetIssue: null };
+    const vals = {};
+    for (const f of NUM_FIELDS) vals[f] = validNumber(p[f], f);
+    if (['price', 'cost', 'feePct', 'fixedFee', 'adCost'].some(f => vals[f] === null)) {
+      r.issue = 'invalidInput';
+    } else {
+      const rate = vals.feePct / 100;
+      const perSaleCosts = vals.cost + vals.fixedFee + vals.adCost;
+      r.profit = vals.price * (1 - rate) - perSaleCosts;
+      if (Math.abs(r.profit) < 1e-9) r.profit = 0;   // avoid -0 and float noise
+      r.margin = vals.price > 0 ? (r.profit / vals.price) * 100 : NaN;
+      r.breakeven = rate < 1 ? perSaleCosts / (1 - rate) : NaN;
+      if (vals.price === 0) r.issue = 'needPrice';
+      else if (rate >= 1) r.issue = 'feeFull';
+      else if (r.profit < 0) r.issue = 'lossWarn';
+      else if (r.profit === 0) r.issue = 'zeroProfit';
+    }
+    if (vals.targetProfit === null) r.targetIssue = 'invalidInput';
+    else if (!Number.isFinite(r.profit)) r.targetIssue = r.issue === 'invalidInput' ? 'invalidInput' : null;
+    else if (vals.targetProfit === 0) { r.units = 0; r.revenue = 0; r.targetIssue = 'targetZero'; }
+    else if (r.profit <= 0) r.targetIssue = 'notReachable';
+    else {
+      r.units = Math.ceil(vals.targetProfit / r.profit - 1e-9);
+      r.revenue = r.units * vals.price;
+      if (!Number.isFinite(r.units) || r.units > MAX_UNITS) { r.units = NaN; r.revenue = NaN; r.targetIssue = 'tooManyUnits'; }
+    }
+    return r;
+  }
+
+  // ---------- data model ----------
+  function makeProduct(name, category) {
+    const now = new Date().toISOString();
+    return {
+      id: newId(), name, category: CATEGORIES.includes(category) ? category : 'other',
+      status: 'idea', currency: lang === 'ja' ? 'JPY' : 'USD',
+      price: 0, cost: 0, feePct: 0, fixedFee: 0, adCost: 0, targetProfit: 0,
+      checklist: {}, notes: '', createdAt: now, updatedAt: now
+    };
+  }
+
+  // Strictly sanitize an untrusted product object. Returns null if unusable.
+  function sanitizeProduct(raw) {
+    if (!isPlainObject(raw)) return null;
+    const name = cleanText(raw.name, 100).trim();
+    if (!name) return null;
+    const p = makeProduct(name, raw.category);
+    if (typeof raw.id === 'string' && /^[\w:.-]{1,80}$/.test(raw.id)) p.id = raw.id;
+    if (STATUSES.includes(raw.status)) p.status = raw.status;
+    if (CURRENCIES.includes(raw.currency)) p.currency = raw.currency;
+    for (const f of NUM_FIELDS) {
+      if (raw[f] === undefined) continue;
+      if (raw[f] === null) { p[f] = null; continue; }
+      const v = validNumber(raw[f], f);
+      if (v === null) return null;
+      p[f] = v;
+    }
+    p.checklist = {};
+    if (raw.checklist !== undefined) {
+      if (!isPlainObject(raw.checklist)) return null;
+      for (const task of TASKS) if (raw.checklist[task] === true) p.checklist[task] = true;
+    }
+    p.notes = cleanText(raw.notes, 2000);
+    for (const f of ['createdAt', 'updatedAt']) {
+      if (typeof raw[f] === 'string' && !Number.isNaN(Date.parse(raw[f]))) p[f] = new Date(raw[f]).toISOString();
+    }
+    if (typeof raw.sourceId === 'string') p.sourceId = cleanText(raw.sourceId, 120);
+    return p;
+  }
+
+  // ---------- v0.1 migration ----------
+  // v0.1 products may store the category as `kind` (reported format) or `category` (repo prototype).
+  const V01_CATEGORY_MAP = {
+    planner: 'planner', 'プランナー': 'planner', template: 'template', 'テンプレート': 'template',
+    sticker: 'sticker', 'ステッカー': 'sticker', printable: 'printable', 'プリンタブル': 'printable',
+    other: 'other', 'その他': 'other'
+  };
+  function v01Category(x) {
+    const raw = typeof x.kind === 'string' ? x.kind : (typeof x.category === 'string' ? x.category : '');
+    const key = raw.trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(V01_CATEGORY_MAP, key) ? V01_CATEGORY_MAP[key] : 'other';
+  }
+  function v01SourceId(x) {
+    if (typeof x.id === 'string' && x.id) return 'v01:' + x.id.slice(0, 100);
+    if (typeof x.id === 'number' && Number.isFinite(x.id)) return 'v01:' + String(x.id);
+    return 'v01:name:' + cleanText(x.name, 100).trim();   // no id: fall back to the name
+  }
+  // Convert one v0.1 product into a raw v0.2 product (still sanitized afterwards). Never mutates x.
+  function fromV01(x) {
+    if (!isPlainObject(x)) return x;   // left for sanitizeProduct to reject
+    return { name: x.name, category: v01Category(x), sourceId: v01SourceId(x) };
+  }
+
+  // Validate a whole backup file. Throws Error(reasonKey) on failure.
+  function parseBackup(obj) {
+    if (!isPlainObject(obj)) throw Error('rFormat');
+    let rawProducts, created = null;
+    if (obj.app === APP_ID && obj.version === SCHEMA_VERSION && isPlainObject(obj.data) && Array.isArray(obj.data.products)) {
+      rawProducts = obj.data.products;
+      created = obj.exportedAt;
+    } else if (obj.version === 1 && isPlainObject(obj.state) && Array.isArray(obj.state.products)) {
+      // v0.1 backup file: products had only name and kind/category.
+      if (obj.state.products.length > MAX_PRODUCTS) throw Error('rTooMany');
+      rawProducts = obj.state.products.map(fromV01);
+      created = typeof obj.at === 'string' ? obj.at : obj.exportedAt;
+    } else throw Error('rFormat');
+    if (rawProducts.length > MAX_PRODUCTS) throw Error('rTooMany');
+    const products = [], ids = new Set();
+    rawProducts.forEach((raw, i) => {
+      const p = sanitizeProduct(raw);
+      if (!p) { const e = Error('rProduct'); e.index = i + 1; throw e; }
+      if (ids.has(p.id)) p.id = newId();
+      ids.add(p.id);
+      products.push(p);
+    });
+    const lng = isPlainObject(obj.data) && isPlainObject(obj.data.settings) && LANGS.includes(obj.data.settings.lang) ? obj.data.settings.lang : null;
+    return { products, created: typeof created === 'string' && !Number.isNaN(Date.parse(created)) ? created : null, lang: lng };
+  }
+
+  // ---------- storage ----------
+  let state = { products: [], selectedId: null };
+  let storageOk = true;
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const obj = JSON.parse(raw);
+      if (!isPlainObject(obj) || !Array.isArray(obj.products)) return;
+      state.products = obj.products.map(sanitizeProduct).filter(Boolean).slice(0, MAX_PRODUCTS);
+      if (isPlainObject(obj.settings) && LANGS.includes(obj.settings.lang)) lang = obj.settings.lang;
+      if (typeof obj.selectedId === 'string') state.selectedId = obj.selectedId;
+    } catch { /* corrupted storage: start empty but do not overwrite until the user changes something */ }
+  }
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SCHEMA_VERSION, products: state.products, selectedId: state.selectedId, settings: { lang } }));
+      storageOk = true;
+    } catch { storageOk = false; }
+    $('storageBanner').hidden = storageOk;
+  }
+  // Read v0.1 products from every known v0.1 key. Read-only: v0.1 data is never written or removed.
+  // Returns converted raw v0.2 products, de-duplicated by sourceId.
+  function readV01() {
+    const out = [], seen = new Set();
+    for (const key of V01_KEYS) {
+      let obj;
+      try { obj = JSON.parse(localStorage.getItem(key) || 'null'); } catch { continue; }
+      const list = Array.isArray(obj) ? obj : (isPlainObject(obj) && Array.isArray(obj.products) ? obj.products : []);
+      for (const x of list.slice(0, MAX_PRODUCTS)) {
+        if (!isPlainObject(x) || typeof x.name !== 'string' || !x.name.trim()) continue;
+        const raw = fromV01(x);
+        if (seen.has(raw.sourceId)) continue;
+        seen.add(raw.sourceId); out.push(raw);
+      }
+    }
+    return out;
+  }
+
+  // ---------- UI ----------
+  let toastTimer;
+  function toast(msg) {
+    const el = $('toast');
+    el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.hidden = true; }, 3200);
+  }
+  const selected = () => state.products.find(p => p.id === state.selectedId) || null;
+
+  function fillSelect(sel, values, labelFn, current) {
+    sel.replaceChildren(...values.map(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = labelFn(v);
+      return o;
+    }));
+    if (current !== undefined) sel.value = current;
+  }
+
+  function applyI18n() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+    document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+    fillSelect($('newCategory'), CATEGORIES, c => t('cat_' + c), $('newCategory').value || CATEGORIES[0]);
+  }
+
+  function renderStats() {
+    $('statTotal').textContent = state.products.length;
+    $('statPreparing').textContent = state.products.filter(p => p.status === 'preparing').length;
+    $('statReady').textContent = state.products.filter(p => p.status === 'ready' || p.status === 'launched').length;
+  }
+
+  function renderList() {
+    const list = $('list');
+    list.replaceChildren();
+    if (!state.products.length) {
+      const p = document.createElement('p');
+      p.className = 'empty'; p.textContent = t('listEmpty');
+      list.append(p); return;
+    }
+    for (const prod of state.products) {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'list-item';
+      btn.setAttribute('aria-current', String(prod.id === state.selectedId));
+      const name = document.createElement('strong');
+      name.textContent = prod.name || t('untitled');
+      const meta = document.createElement('small');
+      meta.textContent = t('cat_' + prod.category) + ' · ' + t('st_' + prod.status);
+      const chips = document.createElement('div');
+      chips.className = 'chips';
+      const c = calculate(prod);
+      const money = document.createElement('span');
+      money.className = 'chip';
+      if (c.issue === 'needPrice') money.textContent = t('chipNoPrice');
+      else if (Number.isFinite(c.profit)) {
+        money.textContent = fmtMoney(c.profit, prod.currency);
+        money.classList.add(c.profit > 0 ? 'good' : 'bad');
+        if (c.profit < 0) money.textContent += ' · ' + t('chipLoss');
+      } else money.textContent = '—';
+      const done = TASKS.filter(k => prod.checklist[k]).length;
+      const check = document.createElement('span');
+      check.className = 'chip'; check.textContent = '✓ ' + done + '/' + TASKS.length;
+      chips.append(money, check);
+      btn.append(name, meta, chips);
+      btn.addEventListener('click', () => select(prod.id, true));
+      list.append(btn);
+    }
+  }
+
+  function setFieldError(field, key, vars) {
+    const input = field === 'name' ? $('fName') : $('f-' + field);
+    const err = $('err-' + field);
+    input.setAttribute('aria-invalid', key ? 'true' : 'false');
+    err.textContent = key ? t(key, vars) : '';
+    if (key) input.setAttribute('aria-describedby', 'err-' + field); else input.removeAttribute('aria-describedby');
+  }
+
+  function renderResults(p) {
+    const c = calculate(p);
+    const show = (id, text, cls) => { const el = $(id); el.textContent = text; el.className = cls || ''; };
+    const valid = c.issue !== 'invalidInput' && c.issue !== 'needPrice';
+    show('rProfit', valid ? fmtMoney(c.profit, p.currency) : '—', valid ? (c.profit > 0 ? 'good' : c.profit < 0 ? 'bad' : '') : '');
+    show('rMargin', valid && Number.isFinite(c.margin) ? fmtNum(c.margin) + '%' : '—', valid && Number.isFinite(c.margin) ? (c.margin > 0 ? 'good' : c.margin < 0 ? 'bad' : '') : '');
+    show('rBreakeven', c.issue !== 'invalidInput' && Number.isFinite(c.breakeven) ? fmtMoney(c.breakeven, p.currency) : '—');
+    const alert = $('calcAlert');
+    alert.textContent = c.issue ? t(c.issue) : '';
+    alert.className = 'alert ' + (c.issue === 'lossWarn' || c.issue === 'invalidInput' ? 'bad' : 'warn');
+    const unitsOk = Number.isFinite(c.units) && c.issue !== 'needPrice';
+    show('rUnits', unitsOk ? t('units', { n: fmtNum(c.units, 0) }) : '—');
+    show('rRevenue', unitsOk && Number.isFinite(c.revenue) ? fmtMoney(c.revenue, p.currency) : '—');
+    const tIssue = c.issue === 'needPrice' ? 'needPrice' : c.targetIssue;
+    const ta = $('targetAlert');
+    ta.textContent = tIssue ? t(tIssue) : '';
+    ta.className = 'alert ' + (['notReachable', 'invalidInput', 'tooManyUnits'].includes(tIssue) ? 'bad' : 'warn');
+  }
+
+  function renderChecklist(p) {
+    const box = $('checklist');
+    box.replaceChildren();
+    let done = 0;
+    for (const task of TASKS) {
+      const label = document.createElement('label');
+      label.className = 'check';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = !!p.checklist[task];
+      if (cb.checked) { done++; label.classList.add('done'); }
+      cb.addEventListener('change', () => {
+        if (cb.checked) p.checklist[task] = true; else delete p.checklist[task];
+        touch(p); renderChecklist(p); renderList();
+      });
+      const span = document.createElement('span');
+      span.textContent = t('t_' + task);
+      label.append(cb, span);
+      box.append(label);
+    }
+    $('checkProgress').textContent = t('progressText', { done, total: TASKS.length });
+    $('checkBar').style.width = (done / TASKS.length * 100) + '%';
+  }
+
+  // Rebuild editor inputs from the selected product (not called while typing).
+  function renderEditor() {
+    const p = selected();
+    $('editor').hidden = !p;
+    $('editorEmpty').hidden = !!p;
+    if (!p) return;
+    $('editorName').textContent = p.name || t('untitled');
+    $('fName').value = p.name;
+    setFieldError('name', null);
+    fillSelect($('fCategory'), CATEGORIES, c => t('cat_' + c), p.category);
+    fillSelect($('fStatus'), STATUSES, s => t('st_' + s), p.status);
+    fillSelect($('fCurrency'), CURRENCIES, c => c, p.currency);
+    for (const f of NUM_FIELDS) {
+      $('f-' + f).value = p[f] === null ? '' : String(p[f]);
+      setFieldError(f, p[f] === null ? (f === 'feePct' ? 'errFee' : 'errNumber') : null);
+    }
+    $('fNotes').value = p.notes;
+    renderResults(p);
+    renderChecklist(p);
+  }
+
+  function renderAll() {
+    applyI18n(); renderStats(); renderList(); renderEditor(); renderV01();
+  }
+
+  function renderV01() {
+    const items = readV01();
+    $('v01Box').hidden = items.length === 0;
+    if (items.length) $('v01Hint').textContent = t('v01Hint', { n: items.length });
+  }
+
+  function touch(p) { p.updatedAt = new Date().toISOString(); save(); renderStats(); }
+
+  function select(id, scroll) {
+    state.selectedId = id; save();
+    renderList(); renderEditor();
+    if (scroll && window.matchMedia('(max-width:820px)').matches) {
+      $('editorPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('editorPanel').focus({ preventScroll: true });
+    }
+  }
+
+  // ---------- events ----------
+  document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => {
+    if (!LANGS.includes(b.dataset.lang)) return;
+    lang = b.dataset.lang; save(); renderAll();
+  }));
+
+  $('addForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = cleanText($('newName').value, 100).trim();
+    const err = $('addError');
+    if (!name) { err.textContent = t('nameRequired'); $('newName').focus(); return; }
+    if (state.products.length >= MAX_PRODUCTS) { err.textContent = t('limitReached', { max: MAX_PRODUCTS }); return; }
+    err.textContent = '';
+    const p = makeProduct(name, $('newCategory').value);
+    state.products.push(p);
+    $('newName').value = '';
+    save(); renderStats();
+    select(p.id, true);
+  });
+
+  $('fName').addEventListener('input', () => {
+    const p = selected(); if (!p) return;
+    const name = cleanText($('fName').value, 100).trim();
+    if (!name) { setFieldError('name', 'nameRequired'); return; }   // keep last valid name
+    setFieldError('name', null);
+    p.name = name; $('editorName').textContent = name;
+    touch(p); renderList();
+  });
+  for (const [id, key, list] of [['fCategory', 'category', CATEGORIES], ['fStatus', 'status', STATUSES], ['fCurrency', 'currency', CURRENCIES]]) {
+    $(id).addEventListener('change', () => {
+      const p = selected(); if (!p) return;
+      const v = $(id).value;
+      if (!list.includes(v)) return;
+      p[key] = v; touch(p); renderList(); renderResults(p);
+    });
+  }
+  document.querySelectorAll('[data-num]').forEach(input => input.addEventListener('input', () => {
+    const p = selected(); if (!p) return;
+    const f = input.dataset.num;
+    const text = input.value.trim();
+    let value;
+    if (input.validity && input.validity.badInput) value = null;
+    else if (text === '') value = 0;
+    else value = Number(text);
+    const v = value === null ? null : validNumber(value, f);
+    if (v === null) {
+      const key = f === 'feePct' ? 'errFee' : (Number.isFinite(value) && value > MAX_AMOUNT ? 'errMax' : 'errNumber');
+      setFieldError(f, key, { max: fmtNum(MAX_AMOUNT, 0) });
+    } else setFieldError(f, null);
+    p[f] = v;
+    touch(p); renderResults(p); renderList();
+  }));
+  $('fNotes').addEventListener('input', () => {
+    const p = selected(); if (!p) return;
+    p.notes = cleanText($('fNotes').value, 2000); touch(p);
+  });
+  $('deleteBtn').addEventListener('click', () => {
+    const p = selected(); if (!p) return;
+    if (!confirm(t('confirmDelete', { name: p.name }))) return;
+    const idx = state.products.indexOf(p);
+    state.products.splice(idx, 1);
+    const next = state.products[Math.min(idx, state.products.length - 1)];
+    state.selectedId = next ? next.id : null;
+    save(); renderStats(); renderList(); renderEditor();
+  });
+
+  $('exportBtn').addEventListener('click', () => {
+    const data = { app: APP_ID, version: SCHEMA_VERSION, exportedAt: new Date().toISOString(), data: { products: state.products, settings: { lang } } };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'launch-studio-v02-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast(t('exportDone'));
+  });
+
+  $('restoreBtn').addEventListener('click', () => $('restoreFile').click());
+  $('restoreFile').addEventListener('change', async e => {
+    const input = e.target, file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    const fail = (key, vars) => alert(t('restoreInvalid', { reason: t(key, vars) }));
+    if (file.size > MAX_FILE_BYTES) return fail('rTooLarge');
+    let text;
+    try { text = await file.text(); } catch { return fail('rRead'); }
+    let obj;
+    try { obj = JSON.parse(text); } catch { return fail('rParse'); }
+    let result;
+    try { result = parseBackup(obj); }
+    catch (err) { return fail(I18N.ja[err.message] ? err.message : 'rFormat', { i: err.index, max: MAX_PRODUCTS }); }
+    const date = result.created ? new Date(result.created).toLocaleString(locale()) : t('unknownDate');
+    if (!confirm(t('confirmRestore', { n: result.products.length, m: state.products.length, date }))) { toast(t('restoreCancelled')); return; }
+    state.products = result.products;
+    state.selectedId = result.products[0] ? result.products[0].id : null;
+    if (result.lang) lang = result.lang;
+    save(); renderAll();
+    toast(t('restoreDone', { n: result.products.length }));
+  });
+
+  $('importV01Btn').addEventListener('click', () => {
+    const existing = new Set(state.products.map(p => p.sourceId).filter(Boolean));
+    const candidates = readV01().filter(x => !existing.has(x.sourceId));
+    if (!candidates.length) { toast(t('nothingToImport')); return; }
+    const room = MAX_PRODUCTS - state.products.length;
+    if (room <= 0) { toast(t('limitReached', { max: MAX_PRODUCTS })); return; }
+    const toAdd = candidates.slice(0, room);
+    if (!confirm(t('confirmImportV01', { n: toAdd.length }))) return;
+    let added = 0;
+    for (const x of toAdd) {
+      const p = sanitizeProduct(x);
+      if (p) { state.products.push(p); added++; }
+    }
+    if (!state.selectedId && state.products[0]) state.selectedId = state.products[0].id;
+    save(); renderAll();
+    toast(t('importedV01', { n: added }));
+  });
+
+  // ---------- start ----------
+  let firstRun = true;
+  try {
+    firstRun = !window.localStorage.getItem(STORAGE_KEY);
+  } catch {
+    storageOk = false; $('storageBanner').hidden = false;   // storage blocked (e.g. privacy settings)
+  }
+  if (firstRun) lang = /^en\b/i.test(navigator.language || '') ? 'en' : 'ja';   // default Japanese
+  load();
+  if (state.selectedId && !selected()) state.selectedId = null;
+  if (!state.selectedId && state.products[0]) state.selectedId = state.products[0].id;
+  renderAll();
+
+  // Exposed for automated tests only (read-only helpers, no data access).
+  window.__DPLS_TEST__ = Object.freeze({ calculate, parseBackup, STORAGE_KEY });
+})();
+</script>
+</body>
+</html>
