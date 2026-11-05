@@ -232,11 +232,15 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
 
   // ---------- constants ----------
   const STORAGE_KEY = 'dpls-v02';          // v0.1 uses 'dpls-proto-v01'; never overwritten here
-  const V01_KEY = 'dpls-proto-v01';
+  // v0.1 storage keys (read-only). 'dpls-v01' is the reported v0.1 key; 'dpls-proto-v01'
+  // is the key used by the v0.1 prototype committed in this repository. Both are only read.
+  const V01_KEYS = ['dpls-v01', 'dpls-proto-v01'];
+  const LANGS = ['ja', 'en'];
   const APP_ID = 'digital-product-launch-studio';
   const SCHEMA_VERSION = 2;
   const MAX_PRODUCTS = 500;
   const MAX_AMOUNT = 1e9;
+  const MAX_UNITS = 1e7;   // above this the monthly goal is treated as unrealistic
   const MAX_FILE_BYTES = 2 * 1024 * 1024;
   const CURRENCIES = ['USD', 'JPY', 'EUR', 'GBP', 'CAD', 'AUD'];
   const CATEGORIES = ['planner', 'template', 'sticker', 'printable', 'other'];
@@ -278,7 +282,8 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
       unknownDate: '不明',
       errNumber: '0以上の数値を入力してください。', errMax: '{max}以下の数値を入力してください。', errFee: '0〜100の範囲で入力してください。',
       needPrice: '販売価格を入力すると利益を計算できます。', invalidInput: '赤枠の入力内容を確認してください。',
-      feeFull: '変動手数料が100%のため、損益分岐価格は計算できません。', lossWarn: '現在の価格では、1件売るごとに赤字になります。',
+      feeFull: '変動手数料が100%のため、損益分岐価格は計算できません。', lossWarn: '現在の価格では、1件売るごとに赤字になります。', zeroProfit: '1件あたりの利益が0です（損益分岐点ちょうど）。',
+      tooManyUnits: '必要な販売件数が1,000万件を超えるため、現実的な目標ではありません。価格・費用・目標を見直してください。',
       notReachable: '1件あたりの利益が0以下のため、目標を達成できる販売件数はありません。', targetZero: '目標利益を入力すると、必要な販売件数を計算します。',
       untitled: '（無題）', chipLoss: '赤字', chipNoPrice: '価格未入力',
       cat_planner: 'プランナー', cat_template: 'テンプレート', cat_sticker: 'ステッカー', cat_printable: 'プリンタブル', cat_other: 'その他',
@@ -322,7 +327,8 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
       unknownDate: 'unknown',
       errNumber: 'Enter a number of 0 or more.', errMax: 'Enter a number up to {max}.', errFee: 'Enter a value from 0 to 100.',
       needPrice: 'Enter a sale price to calculate profit.', invalidInput: 'Check the fields outlined in red.',
-      feeFull: 'The variable fee is 100%, so no break-even price exists.', lossWarn: 'At this price, you lose money on every sale.',
+      feeFull: 'The variable fee is 100%, so no break-even price exists.', lossWarn: 'At this price, you lose money on every sale.', zeroProfit: 'Profit per sale is exactly 0 (break-even).',
+      tooManyUnits: 'More than 10 million sales would be needed, which is not a realistic goal. Review the price, costs or goal.',
       notReachable: 'Profit per sale is 0 or less, so the goal cannot be reached by selling more.', targetZero: 'Enter a profit goal to calculate the sales needed.',
       untitled: '(untitled)', chipLoss: 'Loss', chipNoPrice: 'No price',
       cat_planner: 'Planner', cat_template: 'Template', cat_sticker: 'Sticker', cat_printable: 'Printable', cat_other: 'Other',
@@ -354,7 +360,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
     if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) return null;
     if (field === 'feePct' && v > 100) return null;
     if (v > MAX_AMOUNT) return null;
-    return v;
+    return v === 0 ? 0 : v;   // normalise -0
   }
 
   function fmtMoney(value, currency) {
@@ -383,6 +389,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
       if (vals.price === 0) r.issue = 'needPrice';
       else if (rate >= 1) r.issue = 'feeFull';
       else if (r.profit < 0) r.issue = 'lossWarn';
+      else if (r.profit === 0) r.issue = 'zeroProfit';
     }
     if (vals.targetProfit === null) r.targetIssue = 'invalidInput';
     else if (!Number.isFinite(r.profit)) r.targetIssue = r.issue === 'invalidInput' ? 'invalidInput' : null;
@@ -391,7 +398,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
     else {
       r.units = Math.ceil(vals.targetProfit / r.profit - 1e-9);
       r.revenue = r.units * vals.price;
-      if (!Number.isFinite(r.units)) { r.units = NaN; r.targetIssue = 'notReachable'; }
+      if (!Number.isFinite(r.units) || r.units > MAX_UNITS) { r.units = NaN; r.revenue = NaN; r.targetIssue = 'tooManyUnits'; }
     }
     return r;
   }
@@ -436,6 +443,29 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
     return p;
   }
 
+  // ---------- v0.1 migration ----------
+  // v0.1 products may store the category as `kind` (reported format) or `category` (repo prototype).
+  const V01_CATEGORY_MAP = {
+    planner: 'planner', 'プランナー': 'planner', template: 'template', 'テンプレート': 'template',
+    sticker: 'sticker', 'ステッカー': 'sticker', printable: 'printable', 'プリンタブル': 'printable',
+    other: 'other', 'その他': 'other'
+  };
+  function v01Category(x) {
+    const raw = typeof x.kind === 'string' ? x.kind : (typeof x.category === 'string' ? x.category : '');
+    const key = raw.trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(V01_CATEGORY_MAP, key) ? V01_CATEGORY_MAP[key] : 'other';
+  }
+  function v01SourceId(x) {
+    if (typeof x.id === 'string' && x.id) return 'v01:' + x.id.slice(0, 100);
+    if (typeof x.id === 'number' && Number.isFinite(x.id)) return 'v01:' + String(x.id);
+    return 'v01:name:' + cleanText(x.name, 100).trim();   // no id: fall back to the name
+  }
+  // Convert one v0.1 product into a raw v0.2 product (still sanitized afterwards). Never mutates x.
+  function fromV01(x) {
+    if (!isPlainObject(x)) return x;   // left for sanitizeProduct to reject
+    return { name: x.name, category: v01Category(x), sourceId: v01SourceId(x) };
+  }
+
   // Validate a whole backup file. Throws Error(reasonKey) on failure.
   function parseBackup(obj) {
     if (!isPlainObject(obj)) throw Error('rFormat');
@@ -444,12 +474,10 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
       rawProducts = obj.data.products;
       created = obj.exportedAt;
     } else if (obj.version === 1 && isPlainObject(obj.state) && Array.isArray(obj.state.products)) {
-      // v0.1 backup file: products had only name/category.
-      rawProducts = obj.state.products.map(x => isPlainObject(x) ? {
-        name: x.name, category: String(x.category || '').toLowerCase(),
-        sourceId: typeof x.id === 'string' ? 'v01:' + x.id : undefined
-      } : x);
-      created = obj.at;
+      // v0.1 backup file: products had only name and kind/category.
+      if (obj.state.products.length > MAX_PRODUCTS) throw Error('rTooMany');
+      rawProducts = obj.state.products.map(fromV01);
+      created = typeof obj.at === 'string' ? obj.at : obj.exportedAt;
     } else throw Error('rFormat');
     if (rawProducts.length > MAX_PRODUCTS) throw Error('rTooMany');
     const products = [], ids = new Set();
@@ -460,7 +488,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
       ids.add(p.id);
       products.push(p);
     });
-    const lng = isPlainObject(obj.data) && isPlainObject(obj.data.settings) && I18N[obj.data.settings.lang] ? obj.data.settings.lang : null;
+    const lng = isPlainObject(obj.data) && isPlainObject(obj.data.settings) && LANGS.includes(obj.data.settings.lang) ? obj.data.settings.lang : null;
     return { products, created: typeof created === 'string' && !Number.isNaN(Date.parse(created)) ? created : null, lang: lng };
   }
 
@@ -474,7 +502,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
       const obj = JSON.parse(raw);
       if (!isPlainObject(obj) || !Array.isArray(obj.products)) return;
       state.products = obj.products.map(sanitizeProduct).filter(Boolean).slice(0, MAX_PRODUCTS);
-      if (isPlainObject(obj.settings) && I18N[obj.settings.lang]) lang = obj.settings.lang;
+      if (isPlainObject(obj.settings) && LANGS.includes(obj.settings.lang)) lang = obj.settings.lang;
       if (typeof obj.selectedId === 'string') state.selectedId = obj.selectedId;
     } catch { /* corrupted storage: start empty but do not overwrite until the user changes something */ }
   }
@@ -485,12 +513,22 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
     } catch { storageOk = false; }
     $('storageBanner').hidden = storageOk;
   }
+  // Read v0.1 products from every known v0.1 key. Read-only: v0.1 data is never written or removed.
+  // Returns converted raw v0.2 products, de-duplicated by sourceId.
   function readV01() {
-    try {
-      const obj = JSON.parse(localStorage.getItem(V01_KEY) || 'null');
-      if (isPlainObject(obj) && Array.isArray(obj.products)) return obj.products.filter(x => isPlainObject(x) && typeof x.name === 'string' && x.name.trim());
-    } catch { /* ignore */ }
-    return [];
+    const out = [], seen = new Set();
+    for (const key of V01_KEYS) {
+      let obj;
+      try { obj = JSON.parse(localStorage.getItem(key) || 'null'); } catch { continue; }
+      const list = Array.isArray(obj) ? obj : (isPlainObject(obj) && Array.isArray(obj.products) ? obj.products : []);
+      for (const x of list.slice(0, MAX_PRODUCTS)) {
+        if (!isPlainObject(x) || typeof x.name !== 'string' || !x.name.trim()) continue;
+        const raw = fromV01(x);
+        if (seen.has(raw.sourceId)) continue;
+        seen.add(raw.sourceId); out.push(raw);
+      }
+    }
+    return out;
   }
 
   // ---------- UI ----------
@@ -587,7 +625,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
     const tIssue = c.issue === 'needPrice' ? 'needPrice' : c.targetIssue;
     const ta = $('targetAlert');
     ta.textContent = tIssue ? t(tIssue) : '';
-    ta.className = 'alert ' + (tIssue === 'notReachable' || tIssue === 'invalidInput' ? 'bad' : 'warn');
+    ta.className = 'alert ' + (['notReachable', 'invalidInput', 'tooManyUnits'].includes(tIssue) ? 'bad' : 'warn');
   }
 
   function renderChecklist(p) {
@@ -657,6 +695,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
 
   // ---------- events ----------
   document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => {
+    if (!LANGS.includes(b.dataset.lang)) return;
     lang = b.dataset.lang; save(); renderAll();
   }));
 
@@ -756,7 +795,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
 
   $('importV01Btn').addEventListener('click', () => {
     const existing = new Set(state.products.map(p => p.sourceId).filter(Boolean));
-    const candidates = readV01().filter(x => !existing.has('v01:' + String(x.id)));
+    const candidates = readV01().filter(x => !existing.has(x.sourceId));
     if (!candidates.length) { toast(t('nothingToImport')); return; }
     const room = MAX_PRODUCTS - state.products.length;
     if (room <= 0) { toast(t('limitReached', { max: MAX_PRODUCTS })); return; }
@@ -764,7 +803,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 28px}
     if (!confirm(t('confirmImportV01', { n: toAdd.length }))) return;
     let added = 0;
     for (const x of toAdd) {
-      const p = sanitizeProduct({ name: x.name, category: String(x.category || '').toLowerCase(), sourceId: 'v01:' + String(x.id) });
+      const p = sanitizeProduct(x);
       if (p) { state.products.push(p); added++; }
     }
     if (!state.selectedId && state.products[0]) state.selectedId = state.products[0].id;
